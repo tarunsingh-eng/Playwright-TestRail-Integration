@@ -1,0 +1,30 @@
+name: TestRail Automation
+
+on: [push]
+
+jobs:
+  test-and-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Playwright tests
+        run: npx playwright test
+        continue-on-error: true   # upload even if tests fail
+
+      - name: Install TRCLI
+        run: pip install trcli
+
+      - name: Upload results to TestRail
+        run: |
+          trcli -y \
+            -h ${{ secrets.TESTRAIL_HOST }} \
+            -u ${{ secrets.TESTRAIL_USERNAME }} \
+            -p ${{ secrets.TESTRAIL_API_KEY }} \
+            --project "${{ secrets.TESTRAIL_PROJECT_NAME }}" \
+            parse_junit \
+            -f "test-results/results.xml" \
+            --title "CI Run - ${{ github.run_number }}"
