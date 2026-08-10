@@ -31,4 +31,5 @@ jobs:
             --project "${{ secrets.TESTRAIL_PROJECT_NAME }}" \
             parse_junit \
             -f "test-results/results.xml" \
+            --case-matcher property \
             --title "CI Run #${{ github.run_number }} (${{ github.ref_name }})"
