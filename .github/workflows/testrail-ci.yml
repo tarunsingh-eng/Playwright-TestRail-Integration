@@ -28,7 +28,7 @@ jobs:
             -h ${{ secrets.TESTRAIL_HOST }} \
             -u ${{ secrets.TESTRAIL_USERNAME }} \
             -p ${{ secrets.TESTRAIL_PASSWORD }} \
-            --project-id ${{ secrets.TESTRAIL_PROJECT_ID }} \
+            --project "Learn TestRail with Tarun" \
             parse_junit \
             -f "test-results/results.xml" \
             --title "CI Run #${{ github.run_number }} (${{ github.ref_name }})"
