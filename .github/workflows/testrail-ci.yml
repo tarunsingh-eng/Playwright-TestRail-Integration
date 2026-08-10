@@ -23,12 +23,13 @@ jobs:
 
       - name: Upload results to TestRail
         if: always()
+        env:
+          TESTRAIL_HOST: ${{ secrets.TESTRAIL_HOST }}
+          TESTRAIL_USERNAME: ${{ secrets.TESTRAIL_USERNAME }}
+          TESTRAIL_API_KEY: ${{ secrets.TESTRAIL_PASSWORD }}
+          TESTRAIL_PROJECT_NAME: "Learn TestRail with Tarun"
         run: |
           trcli -y \
-            -h ${{ secrets.TESTRAIL_HOST }} \
-            -u ${{ secrets.TESTRAIL_USERNAME }} \
-            -p ${{ secrets.TESTRAIL_PASSWORD }} \
-            --project "Learn TestRail with Tarun" \
             parse_junit \
             -f "test-results/results.xml" \
             --title "CI Run #${{ github.run_number }} (${{ github.ref_name }})"
