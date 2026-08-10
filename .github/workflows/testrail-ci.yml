@@ -13,18 +13,20 @@ jobs:
 
       - name: Run Playwright tests
         run: npx playwright test
-        continue-on-error: true   # upload even if tests fail
 
       - name: Install TRCLI
+        if: always()
         run: pip install trcli
 
       - name: Upload results to TestRail
+        if: always()
         run: |
           trcli -y \
             -h ${{ secrets.TESTRAIL_HOST }} \
             -u ${{ secrets.TESTRAIL_USERNAME }} \
-            -p ${{ secrets.TESTRAIL_API_KEY }} \
-            --project "${{ secrets.TESTRAIL_PROJECT_NAME }}" \
+            -p ${{ secrets.TESTRAIL_PASSWORD }} \
+            --project-id ${{ secrets.TESTRAIL_PROJECT_ID }} \
             parse_junit \
             -f "test-results/results.xml" \
-            --title "CI Run - ${{ github.run_number }}"
+            --attachment-dir "test-results" \
+            --title "CI Run #${{ github.run_number }} (${{ github.ref_name }})"
