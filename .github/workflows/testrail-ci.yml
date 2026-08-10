@@ -22,6 +22,28 @@ jobs:
         if: always()
         run: pip install trcli
 
+      - name: Clean JUnit XML (Remove raw error)
+        if: always()
+        run: |
+          python -c "
+          import xml.etree.ElementTree as ET
+          tree = ET.parse('test-results/results.xml')
+          for tc in tree.findall('.//testcase'):
+              failure = tc.find('failure')
+              if failure is not None:
+                  failure.text = ''
+                  for attr in ['message', 'type']:
+                      if attr in failure.attrib:
+                          del failure.attrib[attr]
+                  props = tc.find('properties')
+                  if props is None:
+                      props = ET.SubElement(tc, 'properties')
+                  comment = ET.SubElement(props, 'property')
+                  comment.set('name', 'testrail_result_comment')
+                  comment.set('value', 'Test case failed. Screenshot and log attached. Text:')
+          tree.write('test-results/results.xml', encoding='utf-8', xml_declaration=True)
+          "
+
       - name: Upload results to TestRail
         if: always()
         run: |
