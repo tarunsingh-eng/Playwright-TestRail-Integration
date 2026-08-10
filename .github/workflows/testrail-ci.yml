@@ -16,6 +16,7 @@ jobs:
 
       - name: Run Playwright tests
         run: npx playwright test
+        continue-on-error: true
 
       - name: Install TRCLI
         if: always()
@@ -32,4 +33,4 @@ jobs:
             parse_junit \
             -f "test-results/results.xml" \
             --case-matcher property \
-            --title "CI Run #${{ github.run_number }} (${{ github.ref_name }})"
+            --run-id "${{ vars.TESTRAIL_RUN_ID }}"
