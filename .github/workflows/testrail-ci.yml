@@ -11,6 +11,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Playwright Browsers
+        run: npx playwright install chromium
+
       - name: Run Playwright tests
         run: npx playwright test
 
@@ -28,5 +31,4 @@ jobs:
             --project-id ${{ secrets.TESTRAIL_PROJECT_ID }} \
             parse_junit \
             -f "test-results/results.xml" \
-            --attachment-dir "test-results" \
             --title "CI Run #${{ github.run_number }} (${{ github.ref_name }})"
