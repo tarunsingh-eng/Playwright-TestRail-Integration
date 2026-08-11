@@ -63,8 +63,41 @@ export class TestRailApiClient {
   }
 
   public async addResultsForCases(runId: number, results: TestRailResultPayload[]) {
-    return this.post<unknown[]>(`add_results_for_cases/${runId}`, {
+    return this.post<any[]>(`add_results_for_cases/${runId}`, {
       results
     });
+  }
+
+  public async getTests(runId: number) {
+    return this.get<any[]>(`get_tests/${runId}`);
+  }
+
+  public async addAttachmentToResult(resultId: number, filePath: string) {
+    const fs = require('fs');
+    const path = require('path');
+    
+    const buffer = fs.readFileSync(filePath);
+    const blob = new Blob([buffer]);
+    const formData = new FormData();
+    formData.append('attachment', blob, path.basename(filePath));
+
+    const url = `${this.baseUrl}/add_attachment_to_result/${resultId}`;
+    
+    // We intentionally omit Content-Type so fetch dynamically adds the multipart boundary
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': this.authHeader,
+        'User-Agent': 'TestRail-Automation-Client/1.0'
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`TestRail API Error [HTTP ${response.status}]: ${errorText}`);
+    }
+
+    return response.json();
   }
 }
