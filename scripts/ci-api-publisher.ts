@@ -22,6 +22,7 @@ async function run() {
     process.exit(1);
   }
 
+  const cleanHost = host.replace(/\/+$/, '');
   const client = new TestRailApiClient({ host, username, apiKey });
   
   const xmlPath = 'test-results/results.xml';
@@ -36,8 +37,9 @@ async function run() {
   const results: TestRailResultPayload[] = [];
   const jiraAuth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
   
-  // Keep track of attachments per case
+  // Keep track of attachments and Jira defects per case
   const attachmentsByCase: Record<number, string[]> = {};
+  const caseIdToDefect: Record<number, string> = {};
 
   for (const tc of testcases) {
     const tcContent = tc[1];
@@ -69,7 +71,6 @@ async function run() {
       let errorTrace = 'No error trace found.';
       const failureMatch = tcContent.match(/<failure[^>]*><!\[CDATA\[([\s\S]*?)\]\]><\/failure>/);
       if (failureMatch) {
-          // Truncate to avoid Jira API limits (max 32767 chars usually, but let's keep it reasonable)
           errorTrace = failureMatch[1].trim().substring(0, 10000); 
       }
       
@@ -80,10 +81,6 @@ async function run() {
       
       console.log(`Test C${caseId} failed. Creating Jira ticket...`);
       try {
-        // Construct the TestRail Case URL (ensure host doesn't have trailing slash)
-        const cleanHost = host.replace(/\/+$/, '');
-        const testRailLink = `${cleanHost}/index.php?/cases/view/${caseId}`;
-        
         const res = await fetch(`${jiraHost}/rest/api/2/issue`, {
           method: 'POST',
           headers: {
@@ -94,7 +91,7 @@ async function run() {
             fields: {
               project: { key: jiraProjectKey },
               summary: `Automated Test Failed: ${testName}`,
-              description: `The automated test C${caseId} failed in GitHub Actions.\n\n*View in TestRail:* [Test Case C${caseId}|${testRailLink}]\n\n*Error Trace:*\n{code}\n${errorTrace}\n{code}`,
+              description: `The automated test C${caseId} failed in GitHub Actions.\n\n*Error Trace:*\n{code}\n${errorTrace}\n{code}`,
               issuetype: { name: 'Bug' }
             }
           })
@@ -103,6 +100,8 @@ async function run() {
         if (res.ok) {
           const data = await res.json();
           defects = data.key; // e.g. QA-123
+          caseIdToDefect[caseId] = defects;
+          
           console.log(`Successfully created Jira ticket: ${defects}`);
           comment += `\n\nDefect logged: ${defects}`;
           
@@ -153,6 +152,7 @@ async function run() {
   console.log('Sending bulk results to TestRail...');
   let uploadedResults: any[] = [];
   let finalRunId = runId;
+  const caseIdsToInclude = results.map(r => r.case_id);
   
   try {
     uploadedResults = await client.addResultsForCases(finalRunId, results);
@@ -161,7 +161,7 @@ async function run() {
     if (err.message.includes('not a valid test run') || !finalRunId) {
       console.log(`Run ID ${finalRunId || 'missing'} is invalid or missing. Creating a new test run in Project ${projectId}...`);
       try {
-        const newRun = await client.addRun(projectId, `Automated API Run - ${new Date().toLocaleDateString()}`);
+        const newRun = await client.addRun(projectId, `Automated API Run - ${new Date().toLocaleDateString()}`, undefined, caseIdsToInclude);
         finalRunId = newRun.id;
         console.log(`Created new run ID: ${finalRunId}`);
         
@@ -177,42 +177,76 @@ async function run() {
     }
   }
 
-  // Upload attachments to TestRail
+  // Fetch tests to map Case IDs to Test IDs and Result IDs
+  console.log('Fetching tests in run to map case IDs to result IDs...');
+  const testsResponse = await client.getTests(finalRunId) as any;
+  const testsInRun = Array.isArray(testsResponse) ? testsResponse : (testsResponse.tests || []);
+  
+  const caseToTestMap: Record<number, number> = {};
+  for (const t of testsInRun) {
+      caseToTestMap[t.case_id] = t.id;
+  }
+
+  const testToResultMap: Record<number, number> = {};
+  for (const r of uploadedResults) {
+      testToResultMap[r.test_id] = r.id;
+  }
+
+  // 1. Upload attachments to TestRail
   const casesWithAttachments = Object.keys(attachmentsByCase);
-  if (casesWithAttachments.length > 0) {
-      console.log('Fetching tests in run to map case IDs to result IDs...');
-      const testsInRun = await client.getTests(finalRunId);
+  for (const caseIdStr of casesWithAttachments) {
+      const caseId = Number(caseIdStr);
+      const testId = caseToTestMap[caseId];
+      if (!testId) continue;
       
-      // Map case_id -> test_id
-      const caseToTestMap: Record<number, number> = {};
-      for (const t of testsInRun) {
-          caseToTestMap[t.case_id] = t.id;
-      }
+      const resultId = testToResultMap[testId];
+      if (!resultId) continue;
 
-      // Map test_id -> result_id (from the response of addResultsForCases)
-      const testToResultMap: Record<number, number> = {};
-      for (const r of uploadedResults) {
-          testToResultMap[r.test_id] = r.id;
-      }
-
-      for (const caseIdStr of casesWithAttachments) {
-          const caseId = Number(caseIdStr);
-          const testId = caseToTestMap[caseId];
-          if (!testId) continue;
-          
-          const resultId = testToResultMap[testId];
-          if (!resultId) continue;
-
-          for (const filePath of attachmentsByCase[caseId]) {
-              if (fs.existsSync(filePath)) {
-                  console.log(`Uploading attachment for C${caseId} -> Result ID ${resultId}: ${path.basename(filePath)}`);
-                  try {
-                      await client.addAttachmentToResult(resultId, filePath);
-                  } catch (err) {
-                      console.error(`Failed to upload ${filePath}:`, err);
-                  }
+      for (const filePath of attachmentsByCase[caseId]) {
+          if (fs.existsSync(filePath)) {
+              console.log(`Uploading attachment for C${caseId} -> Result ID ${resultId}: ${path.basename(filePath)}`);
+              try {
+                  await client.addAttachmentToResult(resultId, filePath);
+              } catch (err) {
+                  console.error(`Failed to upload ${filePath}:`, err);
               }
           }
+      }
+  }
+  
+  // 2. Add Remote Web Links to Jira using the actual Test ID
+  for (const caseIdStr of Object.keys(caseIdToDefect)) {
+      const caseId = Number(caseIdStr);
+      const defectId = caseIdToDefect[caseId];
+      const testId = caseToTestMap[caseId];
+      
+      if (!defectId || !testId) continue;
+      
+      const testLink = `${cleanHost}/index.php?/tests/view/${testId}`;
+      console.log(`Adding Web Link to Jira ticket ${defectId} for Test ID T${testId}...`);
+      
+      try {
+        const linkRes = await fetch(`${jiraHost}/rest/api/2/issue/${defectId}/remotelink`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${jiraAuth}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                object: {
+                    url: testLink,
+                    title: `Test T${testId} (Run ${finalRunId})`
+                }
+            })
+        });
+        
+        if (!linkRes.ok) {
+            console.error(`Failed to add Web Link to Jira ticket ${defectId}:`, await linkRes.text());
+        } else {
+            console.log(`Successfully linked T${testId} to Jira ticket ${defectId}`);
+        }
+      } catch (err) {
+          console.error(`Error adding Web Link to Jira ticket ${defectId}:`, err);
       }
   }
 }
