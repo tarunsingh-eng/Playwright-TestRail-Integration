@@ -29,8 +29,8 @@ const command = [
 `--password ${apiKey}`,
 `--project "${projectName}"`,
 'parse_junit',
-`--run-id 29`,
-'--title "Smoke Github Tests_2.1_27-09-2023_11:30AM"',
+//`--run-id 29`,
+'--title "GitHub Tests_2.1_27-09-2023_11:30AM"',
 //$(git rev-parse --short HEAD)
 '--run-description "Browser: chromium | Env: local | Branch: $(git branch --show-current)"',
 `--milestone-id ${milestoneId}`,
