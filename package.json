@@ -1,22 +1,32 @@
 {
-  "name": "testrail_automation_lab",
+  "name": "playwright_automation_framework",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "playwright test",
+    "upload": "ts-node upload-results.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tarunsingh-eng/testrail-automation.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/tarunsingh-eng/testrail-automation/issues"
+  },
+  "homepage": "https://github.com/tarunsingh-eng/testrail-automation#readme",
   "devDependencies": {
-    "@playwright/test": "^1.62.1",
-    "@types/express": "^5.0.6"
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.2",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
-    "axios": "^1.19.0",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "dotenv": "^18.0.3"
   }
 }

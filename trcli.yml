@@ -1,5 +1,0 @@
-host: ${TESTRAIL_HOST}
-username: ${TESTRAIL_USERNAME}
-password: ${TESTRAIL_API_KEY}
-project: ${TESTRAIL_PROJECT_NAME}
-case-matcher: property
