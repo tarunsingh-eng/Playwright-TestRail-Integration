@@ -18,6 +18,8 @@ jobs:
       run: npm ci
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
+    - name: Install TestRail CLI
+      run: pip install trcli
     - name: Run Playwright tests
       run: npx playwright test
       continue-on-error: true
