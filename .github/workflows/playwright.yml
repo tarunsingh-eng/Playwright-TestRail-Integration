@@ -36,6 +36,7 @@ jobs:
         TESTRAIL_USERNAME: ${{ secrets.TESTRAIL_USERNAME }}
         TESTRAIL_API_KEY: ${{ secrets.TESTRAIL_API_KEY }}
         TESTRAIL_PROJECT: ${{ secrets.TESTRAIL_PROJECT }}
+        TESTRAIL_MILESTONE: ${{ secrets.TESTRAIL_MILESTONE }}
       run: |
         echo "HOST present: ${TESTRAIL_HOST:+YES}"
         echo "USERNAME present: ${TESTRAIL_USERNAME:+YES}"
