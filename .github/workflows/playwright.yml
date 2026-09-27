@@ -33,5 +33,5 @@ jobs:
         TESTRAIL_USERNAME: ${{ secrets.TESTRAIL_USERNAME }}
         TESTRAIL_API_KEY: ${{ secrets.TESTRAIL_API_KEY }}
         TESTRAIL_PROJECT: ${{ secrets.TESTRAIL_PROJECT }}
-      run: node upload-results.js
+      run: nps tsx upload-results.ts
       continue-on-error: true
