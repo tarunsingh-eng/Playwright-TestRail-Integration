@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TestRailWebhookPayload",
+  "type": "object",
+  "properties": {
+    "event": {
+      "type": "string",
+      "enum": ["result_created", "run_created", "run_completed"]
+    },
+    "event_id": {
+      "type": "string",
+      "example": "evt_99882211"
+    },
+    "timestamp": {
+      "type": "integer",
+      "example": 1754648000
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "result_id": { "type": "integer" },
+        "run_id": { "type": "integer" },
+        "case_id": { "type": "integer" },
+        "status_id": { "type": "integer" },
+        "comment": { "type": "string" },
+        "defects": { "type": "string" }
+      },
+      "required": ["run_id", "case_id", "status_id"]
+    }
+  },
+  "required": ["event", "event_id", "timestamp", "payload"]
+}

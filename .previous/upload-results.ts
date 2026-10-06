@@ -30,12 +30,12 @@ const command = [
 `--project "${projectName}"`,
 'parse_junit',
 //`--run-id 29`,
-'--title "GitHub Tests_2.1_27-09-2023_11:30AM"',
+'--title "Welcome to TestRail Automation using Playwright|Typescript"',
 //$(git rev-parse --short HEAD)
 '--run-description "Browser: chromium | Env: local | Branch: $(git branch --show-current)"',
 `--milestone-id ${milestoneId}`,
 `--file "${path.resolve('test-results/results.xml')}"`,
-'--case-matcher "property"'
+'--case-matcher auto'
 ].join(' ');
 
 

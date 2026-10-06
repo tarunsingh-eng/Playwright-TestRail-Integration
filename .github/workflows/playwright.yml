@@ -1,4 +1,4 @@
-name: Playwright Tests
+name: TestRail Capstone Pipeline
 on:
   push:
     branches: [ main, master ]
@@ -23,6 +23,14 @@ jobs:
     - name: Run Playwright tests
       run: npx playwright test
       continue-on-error: true
+    - name: Create Jira Bugs and Enrich XML
+      if: always()
+      run: npx tsx scripts/post-bugs-and-enrich-xml.ts
+      env:
+        JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+        JIRA_API_TOKEN: ${{secrets.JIRA_API_TOKEN}}
+        JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+        JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
@@ -42,5 +50,11 @@ jobs:
         echo "USERNAME present: ${TESTRAIL_USERNAME:+YES}"
         echo "API KEY present: ${TESTRAIL_API_KEY:+YES}"
         echo "PROJECT present: ${TESTRAIL_PROJECT:+YES}"
-        npx tsx upload-results.ts
+        trcli -y \
+        -h ${{ secrets.TESTRAIL_HOST }} \
+        --project "Capstone Project" \
+        parse_junit \
+        --title "CI Triggered Run" \
+        --file "test-results/results.xml" \
+        --case-matcher property
       continue-on-error: true

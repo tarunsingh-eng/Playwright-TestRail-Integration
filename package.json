@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "playwright test",
-    "upload": "ts-node upload-results.ts"
+    "upload": "ts-node scripts/upload-results.ts",
+    "bug": "ts-node scripts/jira-bug-creator.ts",
+    "bug_and_XML": "ts-node scripts/post-bugs-and-enrich-xml.ts"
   },
   "repository": {
     "type": "git",
@@ -21,12 +23,18 @@
   "homepage": "https://github.com/tarunsingh-eng/testrail-automation#readme",
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "@types/node": "^26.6.2",
+    "@types/form-data": "^2.2.1",
+    "@types/node": "^26.6.4",
+    "@types/xml2js": "^0.4.14",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "dotenv": "^18.0.3"
+    "axios": "^1.20.0",
+    "dotenv": "^18.0.3",
+    "express": "^5.2.1",
+    "form-data": "^4.0.6",
+    "xml2js": "^0.6.2"
   }
 }
