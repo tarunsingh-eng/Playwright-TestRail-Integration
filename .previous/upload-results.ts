@@ -29,7 +29,7 @@ const command = [
 `--password ${apiKey}`,
 `--project "${projectName}"`,
 'parse_junit',
-//`--run-id 29`,
+//`--run-id 30`,
 '--title "Welcome to TestRail Automation using Playwright|Typescript"',
 //$(git rev-parse --short HEAD)
 '--run-description "Browser: chromium | Env: local | Branch: $(git branch --show-current)"',
