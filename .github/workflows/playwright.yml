@@ -51,7 +51,9 @@ jobs:
         echo "API KEY present: ${TESTRAIL_API_KEY:+YES}"
         echo "PROJECT present: ${TESTRAIL_PROJECT:+YES}"
         trcli -y \
-        -h ${{ secrets.TESTRAIL_HOST }} \
+        -h ${secrets.TESTRAIL_HOST} \
+        -u ${secrets.TESTRAIL_USERNAME} \
+        -p ${secrets.TESTRAIL_API_KEY} \
         --project "Capstone Project" \
         parse_junit \
         --title "CI Triggered Run" \
