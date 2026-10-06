@@ -54,7 +54,7 @@ jobs:
         -h "$TESTRAIL_HOST" \
         -u "$TESTRAIL_USERNAME" \
         -p "$TESTRAIL_API_KEY" \
-        --project "Capstone Project" \
+        --project "$TESTRAIL_PROJECT" \
         parse_junit \
         --title "CI Triggered Run" \
         --file "test-results/results.xml" \
