@@ -1,7 +1,9 @@
 name: TestRail Capstone Pipeline
+
 on:
   push:
     branches: [ main, master ]
+
   pull_request:
     branches: [ main, master ]
 
@@ -9,7 +11,7 @@ on:
     inputs:
       testrail_run_id:
         description: TestRail Run ID
-        required: true
+        required: false
         type: string
 
 jobs:
@@ -17,55 +19,91 @@ jobs:
     environment: TESTRAIL_HOST
     timeout-minutes: 60
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
-    - name: Install dependencies
-      run: npm ci
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
-    - name: Install TestRail CLI
-      run: pip install trcli
-    - name: Run Playwright tests
-      run: npx playwright test
-      continue-on-error: true
-    - name: Create Jira Bugs and Enrich XML
-      if: always()
-      run: npx tsx scripts/post-bugs-and-enrich-xml.ts
-      env:
-        JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
-        JIRA_API_TOKEN: ${{secrets.JIRA_API_TOKEN}}
-        JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
-        JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
-    - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
-    - name: Upload Test Results to TestRail
-      if: always()
-      env:
-        TESTRAIL_HOST: ${{ secrets.TESTRAIL_HOST }}
-        TESTRAIL_USERNAME: ${{ secrets.TESTRAIL_USERNAME }}
-        TESTRAIL_API_KEY: ${{ secrets.TESTRAIL_API_KEY }}
-        TESTRAIL_PROJECT: ${{ secrets.TESTRAIL_PROJECT }}
-        TESTRAIL_RUN_ID: ${{ github.event.inputs.testrail_run_id }}
-      run: |
-        echo "HOST present: ${TESTRAIL_HOST:+YES}"
-        echo "USERNAME present: ${TESTRAIL_USERNAME:+YES}"
-        echo "API KEY present: ${TESTRAIL_API_KEY:+YES}"
-        echo "PROJECT present: ${TESTRAIL_PROJECT:+YES}"
-        echo "TestRail Run ID: $TESTRAIL_RUN_ID"
-        trcli -y \
-        -h "$TESTRAIL_HOST" \
-        -u "$TESTRAIL_USERNAME" \
-        -p "$TESTRAIL_API_KEY" \
-        --project "$TESTRAIL_PROJECT" \
-        parse_junit \
-        --file "test-results/results.xml" \
-        --run-id "$TESTRAIL_RUN_ID" \
-        --case-matcher property
-      continue-on-error: true
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Install TestRail CLI
+        run: pip install trcli
+
+      - name: Run Playwright tests
+        run: npx playwright test
+        continue-on-error: true
+
+      - name: Create Jira Bugs and Enrich XML
+        if: always()
+        run: npx tsx scripts/post-bugs-and-enrich-xml.ts
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload Test Results to TestRail
+        if: always()
+        env:
+          TESTRAIL_HOST: ${{ secrets.TESTRAIL_HOST }}
+          TESTRAIL_USERNAME: ${{ secrets.TESTRAIL_USERNAME }}
+          TESTRAIL_API_KEY: ${{ secrets.TESTRAIL_API_KEY }}
+          TESTRAIL_PROJECT: ${{ secrets.TESTRAIL_PROJECT }}
+          TESTRAIL_RUN_ID: ${{ github.event.inputs.testrail_run_id }}
+
+        run: |
+
+          echo "HOST present: ${TESTRAIL_HOST:+YES}"
+          echo "USERNAME present: ${TESTRAIL_USERNAME:+YES}"
+          echo "API KEY present: ${TESTRAIL_API_KEY:+YES}"
+          echo "PROJECT present: ${TESTRAIL_PROJECT:+YES}"
+          echo "TestRail Run ID: ${TESTRAIL_RUN_ID:-NOT PROVIDED}"
+
+          if [ -n "$TESTRAIL_RUN_ID" ]; then
+
+            echo "Updating existing TestRail Run #$TESTRAIL_RUN_ID"
+
+            trcli -y \
+              -h "$TESTRAIL_HOST" \
+              -u "$TESTRAIL_USERNAME" \
+              -p "$TESTRAIL_API_KEY" \
+              --project "$TESTRAIL_PROJECT" \
+              parse_junit \
+              --file "test-results/results.xml" \
+              --run-id "$TESTRAIL_RUN_ID" \
+              --case-matcher property
+
+          else
+
+            echo "No TestRail Run ID provided."
+            echo "Creating new CI Triggered Run."
+
+            trcli -y \
+              -h "$TESTRAIL_HOST" \
+              -u "$TESTRAIL_USERNAME" \
+              -p "$TESTRAIL_API_KEY" \
+              --project "$TESTRAIL_PROJECT" \
+              parse_junit \
+              --title "CI Triggered Run" \
+              --file "test-results/results.xml" \
+              --case-matcher property
+
+          fi
+
+        continue-on-error: true
